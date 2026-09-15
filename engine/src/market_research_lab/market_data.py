@@ -945,6 +945,7 @@ class MarketDataStore:
 
     def _init_db(self) -> None:
         with duckdb.connect(str(self.db_path)) as con:
+            con.execute("BEGIN TRANSACTION")
             con.execute("""
                 CREATE TABLE IF NOT EXISTS dataset_versions (
                     id VARCHAR PRIMARY KEY,
@@ -965,6 +966,36 @@ class MarketDataStore:
                     files JSON,
                     validation_summary JSON
                 )
+            """)
+            self._upgrade_catalogue(con)
+            con.execute("COMMIT")
+
+    @staticmethod
+    def _upgrade_catalogue(con: duckdb.DuckDBPyConnection) -> None:
+        columns = {
+            row[1] for row in con.execute("PRAGMA table_info('dataset_versions')").fetchall()
+        }
+        con.execute(
+            "ALTER TABLE dataset_versions ADD COLUMN IF NOT EXISTS security_list_id VARCHAR"
+        )
+        con.execute(
+            "ALTER TABLE dataset_versions ADD COLUMN IF NOT EXISTS security_list_as_of_date VARCHAR"
+        )
+        con.execute("ALTER TABLE dataset_versions ADD COLUMN IF NOT EXISTS request JSON")
+        if "files" in columns:
+            # Older catalogues stored one part directly on each version. Preserve
+            # their files and copy the metadata only once.
+            con.execute("""
+                INSERT INTO dataset_parts
+                SELECT 'legacy-' || v.id, v.id, v.source,
+                       COALESCE(json_extract_string(v.validation_summary, '$.dataset_type'),
+                                'daily_bars'),
+                       v.coverage_start, v.coverage_end, v.files, v.validation_summary
+                FROM dataset_versions v
+                WHERE v.files IS NOT NULL
+                  AND NOT EXISTS (
+                      SELECT 1 FROM dataset_parts p WHERE p.dataset_version_id = v.id
+                  )
             """)
 
     def _init_securities_db(self) -> None:
@@ -1358,7 +1389,10 @@ class MarketDataStore:
                 if plan.securities:
                     primary_source = plan.parts[0].source if plan.parts else "composite"
                     self.upsert_securities(
-                        plan.securities, source=primary_source, retrieval_time=plan.retrieval_time, con=con
+                        plan.securities,
+                        source=primary_source,
+                        retrieval_time=plan.retrieval_time,
+                        con=con,
                     )
                 con.execute("COMMIT")
 
