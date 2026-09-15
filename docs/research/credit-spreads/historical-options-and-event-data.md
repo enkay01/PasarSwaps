@@ -2,7 +2,6 @@
 
 Status: research finding  
 Evidence checked: 2026-08-23  
-Wayfinder ticket: [Identify viable historical options and event data sources](https://github.com/enkay01/market-research-lab/issues/78)
 
 ## Finding
 

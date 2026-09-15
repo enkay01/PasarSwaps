@@ -1,169 +1,110 @@
-# Algorithmic trading app wayfinder
+# Algorithmic trading research map
 
-Status: decision map  
-Purpose: choose the product rules before changing the current no-execution scope
+Status: research only
+Purpose: find evidence, compare projects and providers, and record open questions. This map does not set product rules, requirements, or a build plan.
 
 ## Start here
 
-The repo currently does four things: stores market data, runs research and valuations, backtests Strategies, and shows Signals and Alerts. It does not connect to a broker or send an order. The new app request asks for paper trading and real trading, so the first decision is whether to change that boundary.
+Use the map to move from public hobby projects to provider documents, then to questions that still need evidence.
 
 ```mermaid
 flowchart TD
-    A[Start] --> B{Can the app send orders?}
-    B -->|No| C[Research, backtest, and Signals only]
-    B -->|Paper only| D[Provider paper or test account]
-    B -->|Paper then live| E[Paper first, live after a release gate]
-    D --> F{What will it trade?}
-    E --> F
-    F -->|US stocks and ETFs| G[Alpaca or IBKR]
-    F -->|Stocks and options| H[Tradier, IBKR, or Alpaca options]
-    F -->|Crypto| I[Binance or a crypto framework]
-    F -->|FX, metals, or CFDs| J[OANDA]
-    G --> K{How often does it decide?}
-    H --> K
-    I --> K
-    J --> K
-    K -->|Daily or end of day| L[Keep current daily data path]
-    K -->|Intraday| M[Add streaming, clock, and reconnect rules]
-    L --> N[Define risk and execution rules]
-    M --> N
-    N --> O[Backtest]
-    O --> P[Paper run]
-    P --> Q{Pass the release gate?}
-    Q -->|No| R[Fix the rule or stop]
-    Q -->|Yes| S[Enable live mode as a separate environment]
+    A[Start with a question] --> B{Which evidence do you need?}
+    B -->|Creator builds| C[YouTube channels and code]
+    B -->|Provider access| D[Paper, test, and live docs]
+    B -->|Market data| E[History, limits, and delivery]
+    B -->|App patterns| F[Features repeated in projects]
+    C --> G[Compare the claim with the source]
+    D --> G
+    E --> G
+    F --> G
+    G --> H{What is still unclear?}
+    H -->|Creator claim| I[Find code or a project page]
+    H -->|Provider fact| J[Read official docs]
+    H -->|Data fit| K[Run a small data check]
+    H -->|Product choice| L[Leave it as an open question]
+    I --> M[Update a research note]
+    J --> M
+    K --> M
+    L --> M
 ```
 
-The suggested path is paper first, US stocks and ETFs, daily decisions, and Alpaca. That choice fits the existing repo and has the fewest new moving parts. It is a suggestion, not a settled requirement.
+## Research index
 
-## Decision 1: what may the app do?
-
-Choose one mode. Do not leave this vague.
-
-| Choice | App behavior | What changes in this repo |
+| Question | Start with | What to pull out |
 | --- | --- | --- |
-| Research only | Backtest Strategies and show Signals. The Analyst places trades outside the app. | Keep `CORE-009` and `ALT-005`. This is the current product. |
-| Paper trading | Send orders to a provider simulator or keep a local paper ledger. No real money. | Add provider accounts, order state, fills, and provider-specific limits. Keep live routing out. |
-| Paper then live | Start with paper. Add live routing only after a stated release gate. | Replace the no-execution requirements with an explicit live mode, risk rules, credential rules, and failure handling. |
+| What do hobby builders make? | [Hobby algorithmic trading builds](research/hobby-algorithmic-trading-builds.md) | Channels, source code, providers, modes, and features shown. |
+| Which providers appear in those builds? | [Hobby algorithmic trading builds](research/hobby-algorithmic-trading-builds.md) | Paper, test, and live paths, plus facts that need a current check. |
+| How does market data scale? | [Massive rate limits and batching](research/massive-rate-limits-and-batching.md) | Request limits, pagination, batching, flat files, and evidence gaps. |
+| Which sources cover options and events? | [Historical options and event data](research/credit-spreads/historical-options-and-event-data.md) | Contract history, quotes, trades, corporate events, earnings dates, cost, and licensing. |
+| Which features repeat across projects? | [Hobby algorithmic trading builds](research/hobby-algorithmic-trading-builds.md) | Backtests, paper or dry-run modes, saved state, monitoring, alerts, and stop controls. |
 
-My suggested first release is paper trading. It lets the app test provider connections and order state without pretending that backtest results are live results.
+## Research paths
 
-## Decision 2: what will it trade?
+### 1. Hobby projects
 
-| Choice | First provider paths found in the research | New work |
-| --- | --- | --- |
-| US stocks and ETFs | Alpaca or IBKR | Keep daily OHLCV first. Add buying power, positions, order state, and market hours. |
-| Stocks and options | Tradier, IBKR, or Alpaca options | Choose the option data source, contract rules, multi-leg orders, and assignment behavior. |
-| Crypto | Binance, Hummingbot, Freqtrade, or OctoBot | Add exchange symbols, 24/7 clock rules, user-data streams, and crypto-specific balances. |
-| FX, metals, or CFDs | OANDA | Replace the US equity data model for the first live slice, or keep it as a separate asset path. |
+Start with the channel or creator table. For each example, separate four things:
 
-The current repo already has US-listed equities and ETFs as its first coverage universe. Changing asset class before the first paper workflow will create a second product problem at the same time.
+- What the video claims
+- What the source code or project page proves
+- Which provider is named
+- Whether paper, test, or live activity is actually shown
 
-## Decision 3: what counts as a paper run?
+The report gives lower weight to a claim when there is no code, account view, order state, or fill record.
 
-There are two different things people call paper trading.
+### 2. Providers
 
-1. The app can simulate fills locally with stored data or a live quote stream.
-2. A provider can accept API orders in a paper or test account.
+The current notes point to these provider paths. This table is a reading guide, not a provider decision.
 
-Keep both names separate in the UI and in Run records. Store the fill rules, data source, fees, slippage, and provider environment for each one. Alpaca documents that paper fills do not model market impact, latency slippage, queue position, price improvement, regulatory fees, or dividends. IBKR also documents differences in paper order behavior. Paper is an integration test, not proof of live performance.
+| Provider | Appears in the research as | Paper or test path to check | Main open point |
+| --- | --- | --- | --- |
+| Alpaca | US stock builds | Separate paper host and credentials | Data coverage, paper fill limits, and current account access. |
+| Interactive Brokers | Broader broker and asset examples | Paper account through TWS or IB Gateway | Session setup, reconnects, permissions, and paper differences. |
+| Tradier | Equity and options examples | Sandbox host, token, and delayed data | Preview, multi-leg orders, rate limits, and partial fills. |
+| OANDA | Foreign exchange examples | Practice host and account | Asset scope, account state, and practice versus production behavior. |
+| Binance | Crypto examples and frameworks | Spot Testnet | Product, key permissions, rate limits, clock drift, and user-data streams. |
 
-## Decision 4: which provider path?
+Read the official provider links in the research report before relying on a fact. Prices, limits, endpoints, and supported products can change.
 
-### Alpaca
+### 3. Features
 
-Use Alpaca when the first asset is US stocks and ETFs and you want a simple paper-to-live path. Paper and live use separate hosts and credentials. Alpaca supports market, limit, stop, stop-limit, trailing-stop, bracket, OCO, and OTO orders for supported equity cases. Its free data path has IEX coverage limits. Read the [authentication](https://docs.alpaca.markets/us/docs/authentication), [paper trading](https://docs.alpaca.markets/us/docs/paper-trading), [order](https://docs.alpaca.markets/us/v1.1/reference/postorder), and [market data](https://docs.alpaca.markets/us/docs/about-market-data-api) docs before selecting it.
-
-### Interactive Brokers
-
-Use IBKR when the app needs broad asset coverage or the broker's order and account features. A personal TWS API setup needs TWS or IB Gateway running, configured, and reconnected when it drops. Paper accounts use simulated execution. Read the [API overview](https://www.interactivebrokers.com/campus/ibkr-api-page/ibkr-api-home/) and [TWS setup guide](https://www.interactivebrokers.com/campus/trading-lessons/installing-configuring-tws-for-the-api/) before selecting it.
-
-### Tradier
-
-Use Tradier when options and advanced order shapes matter early. Its sandbox has delayed data and a separate token. It supports order preview and multi-leg order classes. Read [endpoints](https://docs.tradier.com/docs/endpoints), [trading](https://docs.tradier.com/docs/trading), and [rate limits](https://docs.tradier.com/docs/rate-limiting).
-
-### Binance
-
-Use Binance when the first asset is crypto. Spot Testnet uses virtual money and its own API environment. A framework's local paper simulator is a different thing. Read the [official API introduction](https://developers.binance.com/en/docs/introduction), [Spot REST rules](https://developers.binance.com/en/docs/products/spot/rest-api), and [testnet terms](https://developers.binance.com/en/docs/products/spot/testnet/TESTNET-TERMS-OF-USE).
-
-### OANDA
-
-Use OANDA when the first asset is FX, metals, or CFDs. OANDA documents separate practice and production hosts for its v20 API. Read the [development guide](https://developer.oanda.com/rest-live-v20/development-guide/) before selecting it.
-
-## Decision 5: what must the app remember?
-
-For every decision and every order attempt, record:
-
-- Strategy revision and parameters
-- provider and environment
-- Security or contract
-- data time and decision time
-- intended target or order
-- reason for the decision
-- account buying power and current position snapshot
-- provider response, order ID, fill IDs, fees, and rejection reason
-- app version, data version, and paper assumptions
-
-This extends the repo's existing Run manifest idea to provider activity. The provider's order ID is not enough by itself. The app also needs the Strategy decision that created it.
-
-## Decision 6: what controls stop bad behavior?
-
-Select values for these before any live release:
-
-| Control | Example requirement to settle |
-| --- | --- |
-| Position size | Maximum cash or portfolio weight per Security |
-| Number of positions | Maximum open positions |
-| Loss limit | Stop new entries after a daily loss or drawdown |
-| Exposure | Maximum gross and net exposure |
-| Data freshness | Stop when the newest usable data is too old |
-| Provider state | Stop when authentication, market data, order updates, or reconciliation is unhealthy |
-| Duplicate orders | Same Strategy decision cannot submit twice |
-| Restart | Reconcile the provider account before making a new decision |
-| Manual stop | One visible control that stops new orders and records why |
-| Market hours | Decide what happens before open, after close, during holidays, and during a provider outage |
-
-The current project prefers fast local controls and no warning walls. That still allows a visible live-mode switch, a dry-run default, and one-click stop. It does not require typing a random confirmation phrase.
-
-## Decision 7: what is the first usable workflow?
-
-Use this as the first paper-trading acceptance test:
+Across the examples, look for this observed chain:
 
 ```text
-import or download daily data
-  -> inspect coverage and data age
-  -> save a Strategy revision
-  -> backtest with fees and slippage
-  -> start one paper provider account
-  -> calculate one eligible Signal
-  -> create one intended order
-  -> receive an accepted, rejected, or filled response
-  -> save the provider state and app decision together
-  -> restart the app
-  -> reconcile state without duplicating the order
-  -> show the result in the Run report
+market data
+  -> strategy or rule
+  -> backtest
+  -> paper, dry-run, or test activity
+  -> intended order
+  -> accepted, rejected, or filled result
+  -> monitoring and saved records
 ```
 
-Do not add many Strategies, many providers, or intraday data before this workflow survives restart and provider failure tests.
+This is a pattern found in the sources. It is not a product plan.
 
-## Requirement choices to settle
+### 4. Data and evidence gaps
 
-Fill one answer in each row. These are the decisions that should become changes to [`functional-requirements.md`](functional-requirements.md) after review.
+The data notes show that a provider name does not answer every research question. Check:
 
-| Question | Suggested first answer | Your answer |
-| --- | --- | --- |
-| Can the app send orders? | Paper only at first |  |
-| First asset | US-listed equities and ETFs |  |
-| First cadence | Daily, next eligible bar |  |
-| First provider | Alpaca |  |
-| Local simulation | Yes, with explicit fill assumptions |  |
-| Provider paper account | Yes, as a separate mode |  |
-| Live mode | Later release, off by default |  |
-| Strategy code | External IDE, typed parameters in the app |  |
-| Portfolio | One Security, long and flat for the first slice |  |
-| Reports | Orders, fills, positions, P&L, costs, warnings, and manifest |  |
-| Stop control | Stop new orders and keep the account state visible |  |
-| Credential storage | Local environment file, never browser state |  |
+- Whether history includes delisted securities and changed contracts
+- Whether timestamps mean event time, provider time, interval end, or file time
+- Whether corrections and revisions can be reproduced
+- Whether the data can be kept and used for the intended purpose
+- Whether a paper or test fill behaves like a live fill
 
-Once these answers are chosen, update the accepted requirements and product design. Until then, keep live order code out of the current implementation so the repo does not contain two conflicting product definitions.
+## Open questions
 
+Keep these open until the sources answer them:
+
+1. Which creator projects include enough code and records to reproduce the claimed workflow?
+2. Which provider facts are confirmed by current official documents rather than old videos?
+3. What does each paper or test environment fail to model?
+4. Which features are common across projects, and which belong to one creator's setup?
+5. What data, cost, and licence limits would change the research result?
+6. Which claims need a small hands-on test before they can be trusted?
+
+## Adding a finding
+
+For each new note, record the claim, source link, date checked, evidence level, and what is still unknown. Keep a product decision separate from the evidence that led to it.
+
+The repository keeps the research notes and this map. Product rules, implementation plans, and app code are not part of this research copy.

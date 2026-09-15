@@ -17,7 +17,7 @@ IBKR appears in projects that need more asset types or more broker features. Its
 
 Tradier appears in stock and option API tutorials. OANDA appears in forex bots. Binance appears in crypto bots and in the crypto frameworks used by Hummingbot, Freqtrade, and OctoBot.
 
-The features worth copying are the boring ones: one strategy that can run in backtest and paper mode, saved orders and positions, a dry-run switch, account and provider status, logs, and a way to stop new orders. Risk and execution details are less consistent across the sources. They need their own requirements.
+The features that recur in the sources are one strategy that can run in backtest and paper mode, saved orders and positions, a dry-run switch, account and provider status, logs, and a way to stop new orders. Risk and execution details are less consistent. They need more research.
 
 ## YouTube and creator project examples
 
@@ -43,9 +43,9 @@ The [Joma Tech Twitch trading bot video](https://www.youtube.com/watch?v=-UdWguw
 
 The [LosingLoonies bot video](https://www.youtube.com/watch?v=DVVVvlK2O_k) is a good personal project reference for Reddit signals and analysis. Its [site](https://losingloonies.ca/products) says its products do not connect to brokerage accounts, so it is not a paper or live execution example.
 
-## Provider facts that affect requirements
+## Provider facts to verify
 
-| Provider | Paper or test path | Live path | What the app would need to handle |
+| Provider | Paper or test path | Live path | Implication to investigate |
 | --- | --- | --- | --- |
 | Alpaca | Paper uses `https://paper-api.alpaca.markets` and separate paper credentials. It is a real-time simulation. The docs list missing market impact, latency slippage, queue position, price improvement, regulatory fees, and dividends. [Authentication](https://docs.alpaca.markets/us/docs/authentication) · [Paper trading](https://docs.alpaca.markets/us/docs/paper-trading) | Live uses `https://api.alpaca.markets` and separate credentials. Live trading needs Alpaca brokerage onboarding. [Account plans](https://docs.alpaca.markets/us/docs/account-plans) | Show the environment, credentials set, data feed, buying power, account blocks, fills, and paper assumptions. Free stock data is IEX. Full US market coverage needs a different data plan. [Market data](https://docs.alpaca.markets/us/docs/about-market-data-api) |
 | Interactive Brokers | Paper is linked to a live account. The API can use TWS or IB Gateway. Paper fills are simulated and some order types behave differently. [TWS setup](https://www.interactivebrokers.com/campus/trading-lessons/installing-configuring-tws-for-the-api/) · [Order types](https://www.interactivebrokers.com/campus/?p=195739&post_type=ibkr-api-page) | The same TWS API or Web API path reaches the live account after the account and permissions are ready. [API overview](https://www.interactivebrokers.com/campus/ibkr-api-page/ibkr-api-home/) | Track gateway state, session state, market-data permissions, order pacing, reconnects, and the fact that paper behavior is not live behavior. |
@@ -53,20 +53,20 @@ The [LosingLoonies bot video](https://www.youtube.com/watch?v=DVVVvlK2O_k) is a 
 | OANDA | `https://api-fxpractice.oanda.com` is the practice host. OANDA says to use it for testing with a practice account. [Development guide](https://developer.oanda.com/rest-live-v20/development-guide/) | `https://api-fxtrade.oanda.com` is the production host. OANDA supports rates, history, orders, account state, and transactions. [Introduction](https://developer.oanda.com/rest-live-v20/introduction/) | Choose FX, metals, or CFDs as the asset scope. Handle practice/live hosts, token storage, account state, order state, and documented request limits. |
 | Binance | Spot Testnet uses virtual funds and a separate test environment. Binance says testnet has its own terms and supported API paths. [Testnet terms](https://developers.binance.com/en/docs/products/spot/testnet/TESTNET-TERMS-OF-USE) · [API introduction](https://developers.binance.com/en/docs/introduction) | Production uses the production Spot, Futures, or other product APIs. Trading and account permissions are separate API-key permissions. [Spot REST](https://developers.binance.com/en/docs/products/spot/rest-api) | Keep product, environment, API permissions, rate limits, clock drift, user-data streams, and order status separate. A framework paper simulator is different from Binance Testnet. |
 
-Alpaca is the smallest provider choice for the current US equity direction. IBKR gives more market breadth but needs more local process management. Tradier fits options and equity order shapes. OANDA and Binance only make sense if the asset scope changes.
+In these notes, Alpaca has the shortest path for a US equity paper example. IBKR gives more market breadth but needs more local process management. Tradier fits options and equity order shapes. OANDA and Binance fit different asset scopes.
 
 ## Features that repeat across the builds
 
-These are the parts that should become requirements for a real app.
+These patterns recur across the sources. They are findings to test, not settled product rules.
 
-| Feature | Evidence in the sources | Requirement to consider |
+| Feature | Evidence in the sources | Question raised by the evidence |
 | --- | --- | --- |
 | One strategy in more than one mode | Freqtrade documents backtest, dry-run, and live modes. Blankly describes the same strategy shape across backtest, paper, sandbox, and live. | A Strategy must run in backtest and paper mode without a code change. Live mode must use a separate provider path. |
 | Provider and environment status | Alpaca uses different paper and live hosts. IBKR needs TWS or IB Gateway. Tradier uses separate hosts and tokens. | Show provider, environment, account, connection, data age, permissions, and the last provider error. |
 | Persistent account state | QuantTrader records sessions and ticks. Freqtrade uses SQLite. OctoBot stores logs. | Save orders, fills, positions, balances, and last known provider state. Rebuild that state after a restart. |
 | Risk controls outside strategy code | Freqtrade has protections and maximum open trades. Hummingbot has position-exit controls. The [WalllerG paper bot](https://github.com/WalllerG/Automated-paper-trading-bot) has position sizing, drawdown limits, daily loss limits, and a kill switch. | Add position size, daily loss, drawdown, maximum positions, stale-data, and stop-new-orders rules as separate settings. |
 | Monitoring and alerts | Part Time Larry shows app and scanner work. CodeTrading sends email notifications. Freqtrade documents Telegram. Hummingbot and OctoBot show dashboards. | Show strategy decisions, intended orders, accepted or rejected orders, fills, P&L, logs, and alerts in one local view. |
-| Backtest with real costs | The current repo already models commissions, slippage, borrow fees, and cash interest. Freqtrade documents that backtest fills and slippage assumptions can differ from live execution. | Store fees, spread, slippage, latency assumptions, and the data version with every result. |
+| Backtest with real costs | The research notes cover commissions, slippage, borrow fees, and cash interest. Freqtrade documents that backtest fills and slippage assumptions can differ from live execution. | Which cost and data assumptions should be recorded with each result? |
 | Safe restart and duplicate prevention | The [WalllerG paper bot](https://github.com/WalllerG/Automated-paper-trading-bot) documents single-instance locking and persisted kill-switch state. IBKR and Tradier document session and stream limits. | On restart, reconcile provider state before creating a new order. Make every intended order traceable and idempotent. |
 | Data and execution can differ | Matt Macarty uses Yahoo backtest data while the Alpaca bot uses Alpaca. Part Time Larry uses Alpaca and Polygon in the same series. | Record the data source used for research, the data source used for a live decision, and the time each observation became usable. |
 
@@ -75,12 +75,6 @@ These are the parts that should become requirements for a real app.
 - Do not treat a backtest chart or a "working bot" claim as proof of profit.
 - Do not treat paper fills as live fills. Alpaca and IBKR both describe paper differences.
 - Do not copy a provider name from an old tutorial without checking its current endpoint, permissions, rate limits, and data terms. Blankly examples mention Coinbase Pro and FTX, which are stale provider names for a new build.
-- Do not put risk limits inside a Strategy and assume the provider will enforce them. The app needs its own checks and a stop-new-orders control.
-- Do not call an account connected because one request worked. The app needs separate states for authentication, market data, order submission, order updates, and reconciliation.
-
-## Fit with this repository
-
-The current product rules say the application may backtest and show Signals, but it must never place, route, or submit an order. That is `CORE-009` and `ALT-005` in [`functional-requirements.md`](../functional-requirements.md). The current product design also says there is no broker integration.
-
-The new request asks for a real trading app. That is a product change, not a small provider addition. The wayfinder map in [`algorithmic-trading-wayfinder.md`](../algorithmic-trading-wayfinder.md) starts with that choice so later requirements do not quietly contradict the current rules.
+- A provider may not enforce every risk limit. Which checks belong outside a Strategy, and how would a stop-new-orders control work?
+- One successful request is not enough evidence of a connected account. Check authentication, market data, order submission, order updates, and reconciliation separately.
 
