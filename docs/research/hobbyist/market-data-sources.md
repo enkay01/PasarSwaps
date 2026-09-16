@@ -1,0 +1,74 @@
+# Where a hobbyist gets US equity and ETF price history
+
+Status: research finding
+Evidence checked: 2026-09-16
+
+## Scope
+
+I read vendor pricing pages and API documentation. Prices are what each page showed on 2026-09-16 and can change. Where a vendor does not publish a number, the cell is blank rather than estimated. Request throttling for Massive is already worked out in [massive-rate-limits-and-batching.md](../massive-rate-limits-and-batching.md); this note covers the surrounding market and links back to that file for Massive's limits. Interactive Brokers historical limits live in [historical-data-limits.md](../ibkr/historical-data-limits.md) and [options-data.md](../ibkr/options-data.md).
+
+## Free tiers, paid tiers and history
+
+| Source | Free tier | First paid tier | History and bar sizes | Adjusted for | Options | Pull it with |
+| --- | --- | --- | --- | --- | --- | --- |
+| [Yahoo Finance via yfinance](https://ranaroussi.github.io/yfinance/) | Free. Yahoo publishes no rate limit. | No paid tier. | Daily from inception. IBM daily starts 1962-01-01 and SPY starts 1993-02-01. 1 minute caps at 8 days per request, 5 and 15 minute must fall within 60 days, 1 hour returned at least 2 years. | Splits and dividends, as a separate `adjclose` series beside the raw close. | Current option chains only, no historical option prices. | `pip install yfinance`, or the Yahoo chart JSON endpoint. |
+| [Stooq](https://stooq.com/db/h/) | Free bulk ZIP files. Personal use only; commercial use is prohibited. | No paid tier. | Daily, hourly and 5-minute bulk files for US, UK, Japan, Hong Kong, Poland, Hungary, world and macro. The page does not state the earliest date in each file. | Not stated. | No US options. The page lists Warsaw and Tokyo option files. | Manual ZIP download, ASCII or Metastock format. |
+| [Alpaca](https://alpaca.markets/data) | $0. 200 calls per minute, IEX feed only, equities since 2016, most recent 15 minutes withheld. | $99/month Algo Trader Plus. All US exchanges, 10,000 calls per minute. | 1Min to 1Month bars. Options history starts February 2024. | raw, split, dividend, spin-off or all, default raw. | Yes. Free tier uses the indicative feed delayed 15 minutes; paid uses OPRA. | REST, or the `alpaca-py` SDK. |
+| [Tiingo](https://www.tiingo.com/pricing) | $0. 500 unique symbols per month, 50 requests per hour, 1,000 per day, 1 GB per month. | $30/month Power. 10,000 per hour, 100,000 per day, 40 GB. | EOD back 30+ years on both tiers. Intraday is the IEX feed. | `adjOpen`, `adjHigh`, `adjLow`, `adjClose` and `adjVolume`, using the CRSP method for splits and dividends. | No. | REST in JSON or CSV, plus a Python client. |
+| [Alpha Vantage](https://www.alphavantage.co/support/) | 25 requests per day. | $49.99/month for 75 requests per minute and no daily limit. | Daily 25+ years. Intraday 25+ years, but `outputsize=full` returns the trailing 30 days unless a `month` is named, and any month since 2000-01 can be named. | Splits and cash dividends. | Yes. Realtime and historical options, 15+ years, both premium. | REST in JSON or CSV. |
+| [EODHD](https://eodhd.com/pricing) | 20 calls per day, and EOD history only within the past year. | 19.99 per month (the pricing page rendered £19.99; the API docs say "starting from $19.99"). 100,000 calls per day. | EOD back 30+ years for many instruments. US 1-minute from 2004 including pre-market and after-hours; 5-minute and 1-hour from October 2020. | OHLC is raw; `adjusted_close` covers splits and dividends and volume covers splits. | Separate product at £29.99/month with a 2-year history. | REST, Python library, bulk EOD API. |
+| [Nasdaq Data Link](https://data.nasdaq.com/tablesapi) | Free API key: 300 calls per 10 seconds, 2,000 per 10 minutes, 50,000 per day, one call at a time. Anonymous callers share 50 calls per day. | No single paid tier. Premium tables are subscribed per dataset. | Dataset dependent. The real-time bar API holds up to 10 years for Nasdaq, CQT and OTCBB and 5 days for NTX and PSX. | Dataset dependent. | Nasdaq Smart Options is a real-time product that starts with a sales contact. | Tables API in JSON, XML or CSV, bulk ZIP export, Python, R, SQL, Excel. |
+| [Databento](https://databento.com/pricing) | No free tier. $125 in signup credits, valid 6 months. | Usage-based per GB. The pricing page lists a Standard subscription at $199/month. | The US equities dataset runs since 2018 and OPRA options since 2013. Up to 16 years by dataset. OHLCV per second, minute, hour or day. | Corporate actions and adjustment factors are a separate product. | Yes. OPRA in the same API and account. | Python, C++ or Rust client, HTTP API, batch files. |
+| [Massive](https://massive.com/pricing?product=stocks) | Stocks Basic and Options Basic are $0, 5 calls per minute, 2 years of history, EOD and minute aggregates. | $29/month for Stocks Starter and $29/month for Options Starter. | Stock records date back to 2003-09-10. Free sees 2 years; Starter 5, Developer 10, Advanced 20+. Option history is 2 years free, then 2, 4 and 5+. | `adjusted` defaults to true and covers splits only. | Yes, but stocks and options are separate subscriptions. | REST with Python, Go and JS clients; flat files on paid tiers. |
+| [Interactive Brokers](https://www.interactivebrokers.com/en/pricing/research-marketdata.php) | Free non-consolidated streaming from Cboe One and IEX, and 100 snapshot quotes per month. | A funded IBKR Pro account with USD 500 minimum equity. OPRA L1 is $1.50/month and the equity plus options streaming bundle is $4.50/month for non-professionals. | Bars come per request. 1-second and smaller bars stop at six months, and expired option history does not exist. | `Trades` is split-adjusted; `Adjusted_Last` is adjusted for splits and dividends. | Yes. OPRA L1 covers US options. | TWS API through Trader Workstation or IB Gateway. |
+| [StockAnalysis](https://stockanalysis.com/help/faq/api-access/) | Free manual per-ticker download. | Pro at $9.99/month or $79/year; Unlimited at $29/month or $199/year. | Not stated. | Not stated. | Current options screener only. | Manual web download. No API. |
+
+## Where the numbers came from
+
+Yahoo examples. The daily IBM series starts 1962-01-01, the daily SPY series starts 1993-02-01, and the chart response carries an `adjclose` array beside the raw quote arrays. The chart endpoint returns the intraday constraints in its own error text: "Only 8 days worth of 1m granularity data are allowed to be fetched per request" and "The requested range must be within the last 60 days" for 5-minute data. Checked against `https://query1.finance.yahoo.com/v8/finance/chart/{symbol}` on 2026-09-16. The yfinance docs state that the project is not affiliated with Yahoo and that the Yahoo API is intended for personal use only.
+
+Stooq publishes the bulk files without a signup and labels the download "Free Historical Market Data". The page footer says "This data is intended solely for personal use. Any commercial use is prohibited." The US daily text file was listed at 515 MB, the hourly at 437 MB and the 5-minute at 606 MB on 2026-09-16.
+
+Alpaca documents the Basic and Algo Trader Plus split on its market data page and in the [historical stock data docs](https://docs.alpaca.markets/us/docs/historical-stock-data-1), which says the IEX feed is "the only feed that can be used without a subscription" and accounts for about 2.5% of market volume. The [stock bars reference](https://docs.alpaca.markets/reference/stockbars) lists the `adjustment` values and the default of `raw`. The [historical option data docs](https://docs.alpaca.markets/us/docs/historical-option-data) say option history starts February 2024 and the free feed is an indicative derivative delayed 15 minutes.
+
+Tiingo lists 30+ years under both Starter and Power on its pricing page, and states the rate limits on the [general overview](https://www.tiingo.com/documentation/general/overview). The [end-of-day docs](https://www.tiingo.com/documentation/end-of-day) describe the CRSP adjustment method and the adjusted fields.
+
+Alpha Vantage states the free limit on its [support page](https://www.alphavantage.co/support/) and the paid rates on its [premium page](https://www.alphavantage.co/premium/). The [API documentation](https://www.alphavantage.co/documentation/) marks the intraday endpoint with a premium tip, gives the 25+ year daily history, and gives the intraday `outputsize` and `month` behavior. The same documentation marks realtime and historical options as premium with 15+ years of history.
+
+EODHD showed £19.99, £29.99 and £99.99 per month on its pricing page as rendered for a UK visitor on 2026-09-16, while the [EOD API docs](https://eodhd.com/financial-apis/api-for-historical-data-and-volumes) say "starting from $19.99". The docs also give the free plan as 20 calls per day with EOD history inside the past year, the split and dividend behavior of `adjusted_close`, and the 30+ year range. The pricing page FAQ gives the intraday start dates. The [options marketplace page](https://eodhd.com/marketplace/unicornbay/options) gives the £29.99 price and the 2-year history.
+
+Nasdaq Data Link gives the Tables API limits on the [Tables API page](https://data.nasdaq.com/tablesapi): a free key allows 300 calls per 10 seconds, 2,000 per 10 minutes and 50,000 per day with a concurrency of one, and an anonymous caller shares 50 calls per day. The [streaming and REST page](https://data.nasdaq.com/streamingrestapi) gives the 100 requests per second limit, the bar retention of 10 years or 5 days by venue, and the requirement to contact sales for Smart Options.
+
+Databento gives the $125 credit and the $199 Standard plan on its [pricing page](https://databento.com/pricing). The [equities page](https://databento.com/equities) gives the 2018 start and the $0.40/GB entry rate; the [options page](https://databento.com/options) gives the 2013 start for OPRA and the $0.04/GB entry rate. The [live page](https://databento.com/live) states "Up to 16 years of historical data" and lists the OHLCV sampling frequencies.
+
+Massive prices come from the [stocks pricing](https://massive.com/pricing?product=stocks) and [options pricing](https://massive.com/pricing?product=options) pages. The [custom bars docs](https://massive.com/docs/rest/stocks/aggregates/custom-bars) give the plan-by-plan history, the 2003-09-10 start, and the `adjusted` parameter described as "adjusted for splits".
+
+Interactive Brokers prices and the free feeds come from the [market data pricing page](https://www.interactivebrokers.com/en/pricing/research-marketdata.php). The retention and pacing details are the ones already recorded in [historical-data-limits.md](../ibkr/historical-data-limits.md) and the entitlement details in [market-data-subscriptions.md](../ibkr/market-data-subscriptions.md).
+
+StockAnalysis answers the API question directly in its help centre: "Unfortunately, we don't offer any sort of programmatic access at the moment. There is no API, MCP server or other interface." Its [discounts FAQ](https://stockanalysis.com/help/faq/discounts/) gives Unlimited at $16.58/month annual against $29/month, and its [Pro page](https://stockanalysis.com/pro/) gives Pro at $9.99/month or $79/year.
+
+## Other signups that are easy to start
+
+Three more providers are documented well enough to include. None of them is required reading for the question, but each has a self-serve free key.
+
+[Financial Modeling Prep](https://site.financialmodelingprep.com/developer/docs/pricing) gives a free Basic key 250 calls per day with end-of-day historical data, then Starter at $22/month billed annually for 300 calls per minute and up to 5 years, and Premium at $59/month for 30+ years and intraday charts.
+
+[Twelve Data](https://twelvedata.com/pricing) gives a free Basic key 8 credits per minute and 800 per day with real-time US equities and ETFs, then Grow from $29/month billed annually ($79 monthly) with 55 credits per minute and no daily limit.
+
+[Finnhub](https://finnhub.io/pricing) gives a free key 60 calls per minute with US coverage and a personal-use licence, then jumps to a $3,500/month All-In-One plan. The rendered pricing table did not mark which history fields the free plan includes, so I am not recording a free history depth for it.
+
+## Adjustments, and why they matter here
+
+The three adjustment behaviours disagree, and that decides which price series a backtest can trust. Tiingo and EODHD ship an adjusted close that covers splits and dividends. Alpaca ships raw bars by default and adjusts only when asked, with split, dividend and spin-off as separate switches. Massive adjusts for splits only, and its docs mention splits and not dividends. Yahoo returns both a raw close and an adjusted close. Databento does not fold corporate actions into its bars; it sells corporate actions and adjustment factors as a separate product. Interactive Brokers splits the two across `Trades` and `Adjusted_Last`.
+
+For a total-return backtest on an ETF, the dividend adjustment is the part that matters, and it is the part Massive does not apply. For a price-only backtest, raw or split-only data is enough.
+
+## One signup for stocks and options
+
+Alpaca and Massive both carry US equities and US options. Alpaca covers both asset classes in one account, with options history from February 2024 and the free tier on an indicative feed. Massive charges separately for the Stocks and Options plans, so one hobbyist subscription does not unlock both; that split is worked out in the [Massive note](../massive-rate-limits-and-batching.md). Databento carries OPRA options and US equities in one API and account. Interactive Brokers carries both behind one account and a $1.50/month OPRA L1 subscription. EODHD's options data is a separate marketplace product at £29.99/month, outside the stock plans. Yahoo exposes option chains through yfinance but only for currently listed expirations, with no historical option prices. Tiingo, Twelve Data and Financial Modeling Prep, as documented on the pages above, do not list US options data. Nasdaq Data Link's options feed starts with a sales contact.
+
+## Where to start
+
+Start with yfinance. It needs no key, daily history reaches back to the 1960s for old listings, and one line of Python gets a split and dividend adjusted series. The trade is that Yahoo does not document its API, and the terms restrict the data to personal use.
+
+Add Alpaca's free Basic plan next if the work needs a documented API or options in the same account. It gives 200 calls per minute, equities since 2016, and option history since February 2024, all on one signup; the cost is that the free feed is IEX only and the last 15 minutes are withheld.
