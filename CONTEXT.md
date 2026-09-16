@@ -27,12 +27,7 @@ A research notebook for a one-person algorithmic trading project. This file fixe
 
 | Word | Meaning | Do not use |
 | --- | --- | --- |
-| Map | The issue that holds the destination, the decisions and the open questions for one effort. | epic, roadmap |
-| Destination | The end state that the map works toward. | goal, north star |
-| Ticket | A child issue of the map that holds one question. | story, task |
-| Decision ticket | A ticket that a human and an agent settle together. | grilling ticket |
-| Research ticket | A ticket that an agent settles alone by reading primary sources. | spike |
-| Claim | To assign a ticket to yourself before you work it. | pick up |
-| Frontier | The open tickets that have no open blocker and no assignee. | backlog, queue |
-| Not yet specified | Questions that are in scope but not clear enough to become a ticket. | fog, icebox |
-| Out of scope | Work beyond the destination. It never becomes a ticket. | out of bounds |
+| Feature | The top-level issue that says what to build. Issue #1 holds the trading lab. | map, epic, roadmap |
+| Part | A child issue of the feature. It covers one piece of the build. | ticket, story, task |
+| Note | A research finding stored in `docs/research/`. | report, write-up |
+| Evidence | The facts in a note, kept separate from the decision they led to. | findings, data |
