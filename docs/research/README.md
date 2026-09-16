@@ -1,10 +1,10 @@
 # Research notes
 
-The index for this folder. The feature these notes support is [Hobbyist trading lab](https://github.com/enkay01/PasarSwaps/issues/1). The vocabulary is in [CONTEXT.md](../../CONTEXT.md).
+The index for this folder. The feature these notes support is [Download the S&P 500 and screen it](https://github.com/enkay01/PasarSwaps/issues/1), which shipped in [pull request #21](https://github.com/enkay01/PasarSwaps/pull/21). The vocabulary is in [CONTEXT.md](../../CONTEXT.md).
 
 ## Where this stands
 
-The first Feature is a Screen over the S&P 500 on daily Bars, with the data in one Parquet file. Alpaca Basic is the Source, because it takes a symbol list per request. yfinance stays as an optional deep-history extra. The Backtest engine is not chosen yet, because the Screen comes first. Cost to start is zero.
+The first Feature shipped on 2026-09-16. `download.py` asks Alpaca Basic for daily Bars over the S&P 500 and writes one Parquet file, and `screen.py` reads that file without touching the network and prints the symbols with a fresh bullish MACD cross on the latest Bar. The Dataset holds 503 symbols from 2017-11-15 to 2026-09-15, because a free key serves less history than Alpaca's pricing page states. yfinance stays as an optional deep-history extra. The Backtest engine is not chosen yet, because the Screen comes first. Cost to start is zero.
 
 Interactive Brokers was dropped. The first research round found that it needs a funded live account before a paper account exists, a gateway process holding a browser login, and that it has no history at all for expired option contracts. The second round found a free Alpaca paper account that needs none of that. The IBKR notes stay here as background.
 
