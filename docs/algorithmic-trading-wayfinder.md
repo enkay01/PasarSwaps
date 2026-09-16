@@ -4,13 +4,15 @@ Status: research only. This file is the reading index. Decisions and open ticket
 
 ## Where this stands
 
-The second research round found a simpler path than the first one did. Alpaca hands out a paper account for an email address, with no funding and no gateway process, and carries US equities and options on one free signup. ThetaData and MarketData.app both give a year of historical option data without a credit card.
+The stack is chosen. yfinance for daily equity and ETF history, ThetaData or MarketData.app for options, backtesting.py or vectorbt for the backtest, and an Alpaca Paper Only account with `alpaca-py` for paper. Cost to start is zero.
 
-Interactive Brokers is still the broker chosen on 2026-09-16, but nothing since has argued for it. It needs a funded live account before a paper account exists, a gateway process holding a browser login, and it has no history at all for expired option contracts. Ticket #20 decides whether to keep it.
+Interactive Brokers is dropped. The first research round found that it needs a funded live account before a paper account exists, a gateway process holding a browser login, and that it has no history at all for expired option contracts. The second round found a free Alpaca paper account that needs none of that. The IBKR notes stay in the repo as background.
+
+One question is left open, about what shape the stored data takes.
 
 ## The notes
 
-Start with the hobbyist notes. They are written for one person with a laptop.
+The hobbyist notes are the ones to read. They are written for one person with a laptop.
 
 [Where a hobbyist gets options data](research/hobbyist/options-data-sources.md) compares twelve sources and points at ThetaData and MarketData.app.
 
@@ -18,7 +20,7 @@ Start with the hobbyist notes. They are written for one person with a laptop.
 
 [The easiest paper trading and backtesting path](research/hobbyist/paper-trading-and-backtesting.md) ranks brokers and libraries by setup work and names a five-step path.
 
-The first round is background on the broker. [IBKR API options](research/ibkr/api-surfaces.md) covers the three ways to connect. [IBKR historical data limits](research/ibkr/historical-data-limits.md) covers bar sizes, pacing and retention. [IBKR market data subscriptions](research/ibkr/market-data-subscriptions.md) covers what must be paid before data flows. [IBKR options data](research/ibkr/options-data.md) covers the expired-contract gap.
+The first round is background on the dropped broker. [IBKR API options](research/ibkr/api-surfaces.md) covers the three ways to connect. [IBKR historical data limits](research/ibkr/historical-data-limits.md) covers bar sizes, pacing and retention. [IBKR market data subscriptions](research/ibkr/market-data-subscriptions.md) covers what must be paid before data flows. [IBKR options data](research/ibkr/options-data.md) covers the expired-contract gap.
 
 Three older notes cover [hobby projects](research/hobby-algorithmic-trading-builds.md), [Massive request limits](research/massive-rate-limits-and-batching.md), and [institutional options vendors](research/credit-spreads/historical-options-and-event-data.md).
 
@@ -26,9 +28,7 @@ Three older notes cover [hobby projects](research/hobby-algorithmic-trading-buil
 
 | Ticket | Type | Question |
 | --- | --- | --- |
-| [#20](https://github.com/enkay01/PasarSwaps/issues/20) | decision | Pick the hobbyist stack |
-| [#16](https://github.com/enkay01/PasarSwaps/issues/16) | decision | Choose the IBKR API surface, unless #20 drops IBKR |
-| [#15](https://github.com/enkay01/PasarSwaps/issues/15) | decision | The contract a data source must satisfy so one acquisition serves many backtests |
+| [#15](https://github.com/enkay01/PasarSwaps/issues/15) | decision | What shape stored data takes so one pull serves every backtest it can support |
 
 ## Adding a note
 
