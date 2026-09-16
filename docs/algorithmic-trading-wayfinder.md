@@ -1,7 +1,20 @@
 # Algorithmic trading research map
 
 Status: research only
-Purpose: find evidence, compare projects and providers, and record open questions. This map does not set product rules, requirements, or a build plan.
+Purpose: find evidence, record the user's chosen direction, and track open questions. This map is not an implementation plan.
+
+## Decisions and open questions
+
+These live on the issue map, which is the single source of truth: [Algorithmic trading research map: Interactive Brokers](https://github.com/enkay01/PasarSwaps/issues/1).
+
+Settled on 2026-09-16: Interactive Brokers is the broker. Data from one source should load once and serve every backtest type its coverage and resolution support. Historical options-data selection stays open for a later discussion, because choosing IBKR does not establish that it supplies all the history a backtest needs.
+
+The four IBKR research tickets are closed, and their answers are the notes linked below. Two decisions are still open, and both are takeable:
+
+| Ticket | Type | Question |
+| --- | --- | --- |
+| [#16](https://github.com/enkay01/PasarSwaps/issues/16) | grilling | Which API surface does the lab commit to? |
+| [#15](https://github.com/enkay01/PasarSwaps/issues/15) | grilling | What contract must a source satisfy so one acquisition serves every backtest? |
 
 ## Start here
 
@@ -38,6 +51,10 @@ flowchart TD
 | How does market data scale? | [Massive rate limits and batching](research/massive-rate-limits-and-batching.md) | Request limits, pagination, batching, flat files, and evidence gaps. |
 | Which sources cover options and events? | [Historical options and event data](research/credit-spreads/historical-options-and-event-data.md) | Contract history, quotes, trades, corporate events, earnings dates, cost, and licensing. |
 | Which features repeat across projects? | [Hobby algorithmic trading builds](research/hobby-algorithmic-trading-builds.md) | Backtests, paper or dry-run modes, saved state, monitoring, alerts, and stop controls. |
+| Which IBKR API should the lab use? | [IBKR API options](research/ibkr/api-surfaces.md) | Gateway against Trader Workstation, session lifecycle, paper against live, order types, multi-leg combos, and what the Web API cannot do. |
+| How much history can IBKR return? | [IBKR historical data limits](research/ibkr/historical-data-limits.md) | Bar sizes, request windows, pacing, retention, adjusted prices, and paging gaps. |
+| What does IBKR data cost to access? | [IBKR market data subscriptions](research/ibkr/market-data-subscriptions.md) | Subscriptions, network entitlements, market data lines, error codes, delayed data, and paper account rules. |
+| What options data does IBKR hold? | [IBKR options data](research/ibkr/options-data.md) | Chain discovery, per-contract history, live Greeks, and the expired-contract gap. |
 
 ## Research paths
 
@@ -54,12 +71,12 @@ The report gives lower weight to a claim when there is no code, account view, or
 
 ### 2. Providers
 
-The current notes point to these provider paths. This table is a reading guide, not a provider decision.
+Interactive Brokers is the chosen broker. The others stay here as comparison for the notes they carry, not as candidates.
 
 | Provider | Appears in the research as | Paper or test path to check | Main open point |
 | --- | --- | --- | --- |
+| Interactive Brokers | Chosen broker | IB Gateway, with Trader Workstation alongside | Answered in the IBKR notes: API surface, history limits, subscriptions, and the options gap. |
 | Alpaca | US stock builds | Separate paper host and credentials | Data coverage, paper fill limits, and current account access. |
-| Interactive Brokers | Broader broker and asset examples | Paper account through TWS or IB Gateway | Session setup, reconnects, permissions, and paper differences. |
 | Tradier | Equity and options examples | Sandbox host, token, and delayed data | Preview, multi-leg orders, rate limits, and partial fills. |
 | OANDA | Foreign exchange examples | Practice host and account | Asset scope, account state, and practice versus production behavior. |
 | Binance | Crypto examples and frameworks | Spot Testnet | Product, key permissions, rate limits, clock drift, and user-data streams. |
@@ -108,3 +125,5 @@ Keep these open until the sources answer them:
 For each new note, record the claim, source link, date checked, evidence level, and what is still unknown. Keep a product decision separate from the evidence that led to it.
 
 The repository keeps the research notes and this map. Product rules, implementation plans, and app code are not part of this research copy.
+
+Decisions and open questions belong on the [issue map](https://github.com/enkay01/PasarSwaps/issues/1), not here. This file is the reading index that points into `docs/research/`.
