@@ -1,0 +1,12 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.anti-slop]
+ignore_patterns = [
+  ".git/**",
+  ".pytest_cache/**",
+  ".venv/**",
+  "__pycache__/**",
+  "data/**",
+]
