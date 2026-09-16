@@ -51,6 +51,8 @@ python -m pytest
 
 ## Limits
 
+The download asks for ten years. Alpaca's Basic plan serves a shorter history, so the file holds whatever the Source returns, and the download prints the date range it actually wrote.
+
 The download uses Alpaca's IEX feed, which carries about 2.5% of US market volume and withholds the last 15 minutes. It stops at the last completed calendar day, so a partial Bar for today never enters the Dataset.
 
 The S&P 500 list holds today's members rather than the members on each past date, so a screen over history carries survivorship bias.

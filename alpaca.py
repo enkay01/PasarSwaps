@@ -213,6 +213,9 @@ class AlpacaBarSource:
             "adjustment": query.adjustment,
             "feed": self._settings.venue,
             "sort": "asc",
+            # Skip Alpaca's entity mapping so the reply holds the symbol asked for.
+            # The default mapping drops a renamed entity from a symbol batch.
+            "asof": "-",
         }
         if query.token is not None:
             params["page_token"] = query.token

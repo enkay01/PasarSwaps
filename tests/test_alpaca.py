@@ -96,6 +96,7 @@ def test_sends_the_credentials_and_the_daily_bars_request() -> None:
     assert headers["APCA-API-SECRET-KEY"] == "secret-key"
     assert params["timeframe"] == "1Day"
     assert params["feed"] == "iex"
+    assert params["asof"] == "-"
     assert params["symbols"] == "AAPL"
 
 
