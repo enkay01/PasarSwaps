@@ -3,10 +3,6 @@
 Status: research finding
 Evidence checked: 2026-09-16
 
-## Scope
-
-I read vendor pricing pages and API documentation. Prices are what each page showed on 2026-09-16 and can change. Where a vendor does not publish a number, the cell is blank rather than estimated. Request throttling for Massive is already worked out in [massive-rate-limits-and-batching.md](../massive-rate-limits-and-batching.md); this note covers the surrounding market and links back to that file for Massive's limits. Interactive Brokers historical limits live in [historical-data-limits.md](../ibkr/historical-data-limits.md) and [options-data.md](../ibkr/options-data.md).
-
 ## Free tiers, paid tiers and history
 
 | Source | Free tier | First paid tier | History and bar sizes | Adjusted for | Options | Pull it with |
@@ -53,13 +49,13 @@ Three more providers are documented well enough to include. None of them is requ
 
 [Financial Modeling Prep](https://site.financialmodelingprep.com/developer/docs/pricing) gives a free Basic key 250 calls per day with end-of-day historical data, then Starter at $22/month billed annually for 300 calls per minute and up to 5 years, and Premium at $59/month for 30+ years and intraday charts.
 
-[Twelve Data](https://twelvedata.com/pricing) gives a free Basic key 8 credits per minute and 800 per day with real-time US equities and ETFs, then Grow from $29/month billed annually ($79 monthly) with 55 credits per minute and no daily limit.
+[Twelve Data](https://twelvedata.com/pricing) gives a free Basic key 8 credits per minute and 800 per day with real-time US equities and ETFs, then Grow from $29/month with 55 credits per minute and no daily limit.
 
 [Finnhub](https://finnhub.io/pricing) gives a free key 60 calls per minute with US coverage and a personal-use licence, then jumps to a $3,500/month All-In-One plan. The rendered pricing table did not mark which history fields the free plan includes, so I am not recording a free history depth for it.
 
 ## Adjustments, and why they matter here
 
-The three adjustment behaviours disagree, and that decides which price series a backtest can trust. Tiingo and EODHD ship an adjusted close that covers splits and dividends. Alpaca ships raw bars by default and adjusts only when asked, with split, dividend and spin-off as separate switches. Massive adjusts for splits only, and its docs mention splits and not dividends. Yahoo returns both a raw close and an adjusted close. Databento does not fold corporate actions into its bars; it sells corporate actions and adjustment factors as a separate product. Interactive Brokers splits the two across `Trades` and `Adjusted_Last`.
+Adjustment behaviour differs by source, and that decides which price series a backtest can trust. Tiingo and EODHD ship an adjusted close that covers splits and dividends. Alpaca ships raw bars by default and adjusts only when asked, with split, dividend and spin-off as separate switches. Massive adjusts for splits only, and its docs mention splits and not dividends. Yahoo returns both a raw close and an adjusted close. Databento does not fold corporate actions into its bars; it sells corporate actions and adjustment factors as a separate product. Interactive Brokers splits the two across `Trades` and `Adjusted_Last`.
 
 For a total-return backtest on an ETF, the dividend adjustment is the part that matters, and it is the part Massive does not apply. For a price-only backtest, raw or split-only data is enough.
 
