@@ -4,8 +4,10 @@ from collections.abc import Sequence
 from datetime import date, timedelta
 
 from bars import Bar
+from macd import MINIMUM_BARS
 
 DAY_ZERO = date(2024, 1, 2)
+FLAT_THEN_UP = [100.0] * (MINIMUM_BARS - 1) + [110.0]
 
 
 def make_bar(

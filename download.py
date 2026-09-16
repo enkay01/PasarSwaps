@@ -5,24 +5,30 @@
 Writes data/sp500_daily_bars.parquet and prints the symbol count and the date range.
 """
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, timedelta
 import os
 from pathlib import Path
 import sys
 
+import pandas as pd
 from dotenv import load_dotenv
 
 from alpaca import DEFAULT_SETTINGS, AlpacaBarSource, AlpacaCredentials, RequestsTransport
 from bars import BarSource, bars_to_frame
 from paths import BARS_PARQUET, ENV_FILE, UNIVERSE_CSV
-from store import write_bars
+from store import DatasetSpan, dataset_span, write_bars
 from universe import read_universe
 
 API_KEY_VARIABLE = "ALPACA_API_KEY"
 API_SECRET_VARIABLE = "ALPACA_API_SECRET"
 TEN_YEARS = 10
+SYMBOLS_IN_MESSAGE = 10
+
+
+class IncompleteDownload(RuntimeError):
+    """The Source returned no Bars for a symbol in the Universe."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,26 +41,25 @@ class DownloadRequest:
     end: date
 
 
-@dataclass(frozen=True, slots=True)
-class DownloadSummary:
-    """What landed on disk after one run."""
-
-    symbols: int
-    first_date: date
-    last_date: date
-
-
-def download_bars(source: BarSource, request: DownloadRequest) -> DownloadSummary:
+def download_bars(source: BarSource, request: DownloadRequest) -> DatasetSpan:
     """Fetch the Universe and write one Parquet file, then report what landed."""
     symbols = read_universe(request.universe_path)
     bars = source.fetch_daily_bars(symbols, request.start, request.end)
     frame = bars_to_frame(bars)
+    require_every_symbol(symbols, frame)
     write_bars(request.bars_path, frame)
-    return DownloadSummary(
-        symbols=int(frame["symbol"].nunique()),
-        first_date=frame["date"].min().date(),
-        last_date=frame["date"].max().date(),
-    )
+    return dataset_span(frame)
+
+
+def require_every_symbol(symbols: Sequence[str], frame: pd.DataFrame) -> None:
+    """Refuse to store a Dataset that dropped a symbol the Universe asked for."""
+    written = set(frame["symbol"].astype(str))
+    missing = [symbol for symbol in symbols if symbol not in written]
+    if missing:
+        raise IncompleteDownload(
+            f"the Source returned no Bars for {len(missing)} of {len(symbols)} symbols: "
+            f"{', '.join(missing[:SYMBOLS_IN_MESSAGE])}"
+        )
 
 
 def ten_years_before(day: date) -> date:
@@ -74,7 +79,7 @@ def read_credentials(environ: Mapping[str, str]) -> AlpacaCredentials:
     return AlpacaCredentials(api_key=api_key, api_secret=api_secret)
 
 
-def render(summary: DownloadSummary) -> str:
+def render(summary: DatasetSpan) -> str:
     """The one line the run prints when it finishes."""
     return f"wrote {summary.symbols} symbols, {summary.first_date} to {summary.last_date}"
 

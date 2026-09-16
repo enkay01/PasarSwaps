@@ -34,10 +34,10 @@ class Bar:
 
 
 class BarSource(Protocol):
-    """A Source that returns daily Bars for a whole symbol list."""
+    """A Source that returns daily Bars for a whole Universe."""
 
     def fetch_daily_bars(self, symbols: Sequence[str], start: date, end: date) -> list[Bar]:
-        """Return every daily Bar for the symbols between the two dates."""
+        """Return every daily Bar for the Universe between the two dates."""
         ...
 
 

@@ -4,9 +4,7 @@ from datetime import timedelta
 
 from bars import bars_to_frame
 from macd import MINIMUM_BARS, fresh_bullish_crosses
-from support import DAY_ZERO, history
-
-FLAT_THEN_UP = [100.0] * (MINIMUM_BARS - 1) + [110.0]
+from support import DAY_ZERO, FLAT_THEN_UP, history
 
 
 def test_reports_a_symbol_that_crosses_up_on_the_latest_bar() -> None:

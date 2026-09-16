@@ -1,10 +1,30 @@
 """The one Parquet file that holds the Dataset."""
 
+from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 import pandas as pd
 
 from bars import COLUMNS
+
+
+@dataclass(frozen=True, slots=True)
+class DatasetSpan:
+    """What a Dataset holds: how many symbols, over which dates."""
+
+    symbols: int
+    first_date: date
+    last_date: date
+
+
+def dataset_span(frame: pd.DataFrame) -> DatasetSpan:
+    """Summarise a Dataset frame by its symbol count and its date range."""
+    return DatasetSpan(
+        symbols=int(frame["symbol"].nunique()),
+        first_date=frame["date"].min().date(),
+        last_date=frame["date"].max().date(),
+    )
 
 
 def write_bars(path: Path, frame: pd.DataFrame) -> None:

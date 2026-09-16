@@ -1,8 +1,8 @@
-"""The Alpaca Source: one symbol list per request, paged, paced and retried.
+"""The Alpaca Source: many symbols per request, every page followed, requests paced.
 
-The previous lab fetched one symbol per call and died partway through a run.
-This Source sends a list of symbols in each request, follows every page, and
-paces its requests under the Basic plan's 200 calls a minute.
+One Alpaca request carries many symbols. This Source sends the Universe in
+batches, follows each page to its end, and keeps its request rate under the
+Basic plan's 200 calls a minute.
 """
 
 from collections.abc import Callable, Iterator, Mapping, Sequence
@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 import json
 import time
-from typing import Protocol, Union
+from typing import NamedTuple, Protocol, Union
 
 import requests
 
@@ -76,7 +76,7 @@ class RequestsTransport:
 class AlpacaSettings:
     """The knobs that keep one run inside the Alpaca Basic plan."""
 
-    feed: str
+    venue: str
     page_limit: int
     symbols_per_request: int
     request_interval_seconds: float
@@ -86,7 +86,7 @@ class AlpacaSettings:
 
 
 DEFAULT_SETTINGS = AlpacaSettings(
-    feed="iex",
+    venue="iex",
     page_limit=10_000,
     symbols_per_request=100,
     request_interval_seconds=0.35,
@@ -117,11 +117,18 @@ class RawBar:
     volume: int
 
 
+class BarKey(NamedTuple):
+    """The symbol and date that name one Bar in a page."""
+
+    symbol: str
+    day: date
+
+
 @dataclass(frozen=True, slots=True)
 class BarPage:
     """One page of Bars and the token that reaches the next page."""
 
-    bars: Mapping[tuple[str, date], RawBar]
+    bars: Mapping[BarKey, RawBar]
     next_token: str | None
 
 
@@ -137,7 +144,7 @@ class PageQuery:
 
 
 class AlpacaBarSource:
-    """Fetch daily Bars from Alpaca for a symbol list, raw and adjusted."""
+    """Fetch daily Bars from Alpaca for a Universe, raw and adjusted."""
 
     def __init__(
         self,
@@ -162,8 +169,8 @@ class AlpacaBarSource:
             bars.extend(_merge(raw, adjusted))
         return bars
 
-    def _fetch(self, symbols: Sequence[str], start: date, end: date, adjustment: str) -> dict[tuple[str, date], RawBar]:
-        collected: dict[tuple[str, date], RawBar] = {}
+    def _fetch(self, symbols: Sequence[str], start: date, end: date, adjustment: str) -> dict[BarKey, RawBar]:
+        collected: dict[BarKey, RawBar] = {}
         token: str | None = None
         while True:
             page = self._get_page(PageQuery(symbols=symbols, start=start, end=end, adjustment=adjustment, token=token))
@@ -204,7 +211,7 @@ class AlpacaBarSource:
             "end": query.end.isoformat(),
             "limit": str(self._settings.page_limit),
             "adjustment": query.adjustment,
-            "feed": self._settings.feed,
+            "feed": self._settings.venue,
             "sort": "asc",
         }
         if query.token is not None:
@@ -227,21 +234,22 @@ def _batched(symbols: Sequence[str], size: int) -> Iterator[Sequence[str]]:
 
 
 def _merge(
-    raw: Mapping[tuple[str, date], RawBar],
-    adjusted: Mapping[tuple[str, date], RawBar],
+    raw: Mapping[BarKey, RawBar],
+    adjusted: Mapping[BarKey, RawBar],
 ) -> list[Bar]:
     missing_adjusted = set(raw) - set(adjusted)
     missing_raw = set(adjusted) - set(raw)
     if missing_adjusted or missing_raw:
+        first = min(missing_adjusted or missing_raw)
         raise SourceError(
             "Alpaca returned raw and adjusted Bars that do not line up: "
             f"{len(missing_adjusted)} without an adjusted close, "
-            f"{len(missing_raw)} without a raw Bar, first {_first_key(missing_adjusted or missing_raw)}"
+            f"{len(missing_raw)} without a raw Bar, first {first.symbol} {first.day}"
         )
     return [
         Bar(
-            symbol=key[0],
-            date=key[1],
+            symbol=key.symbol,
+            date=key.day,
             open=bar.open,
             high=bar.high,
             low=bar.low,
@@ -251,11 +259,6 @@ def _merge(
         )
         for key, bar in sorted(raw.items())
     ]
-
-
-def _first_key(keys: set[tuple[str, date]]) -> str:
-    symbol, day = min(keys)
-    return f"{symbol} {day}"
 
 
 def _parsed_body(text: str) -> JsonValue:
@@ -273,13 +276,13 @@ def _parse_page(body: JsonValue) -> BarPage:
     raw_bars = body["bars"]
     if not isinstance(raw_bars, dict):
         raise SourceError("Alpaca returned a bars field that is not an object")
-    bars: dict[tuple[str, date], RawBar] = {}
+    bars: dict[BarKey, RawBar] = {}
     for symbol, items in raw_bars.items():
         if not isinstance(items, list):
             raise SourceError(f"Alpaca returned no list of Bars for {symbol}")
         for item in items:
             bar = _parse_bar(str(symbol), item)
-            bars[(bar.symbol, bar.date)] = bar
+            bars[BarKey(bar.symbol, bar.date)] = bar
     token = body.get("next_page_token")
     if token is not None and not isinstance(token, str):
         raise SourceError("Alpaca returned a page token that is not a string")

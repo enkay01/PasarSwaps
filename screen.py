@@ -12,14 +12,14 @@ import sys
 
 from macd import Cross, fresh_bullish_crosses
 from paths import BARS_PARQUET
-from store import read_bars
+from store import dataset_span, read_bars
 
 
 @dataclass(frozen=True, slots=True)
 class ScreenResult:
     """The Bar the Screen ran on, the crosses it found, and how much it read."""
 
-    as_of: date
+    screen_date: date
     crosses: list[Cross]
     symbols_read: int
 
@@ -27,17 +27,18 @@ class ScreenResult:
 def run_screen(bars_path: Path) -> ScreenResult:
     """Run the MACD rules over the Dataset on disk."""
     frame = read_bars(bars_path)
+    span = dataset_span(frame)
     return ScreenResult(
-        as_of=frame["date"].max().date(),
+        screen_date=span.last_date,
         crosses=fresh_bullish_crosses(frame),
-        symbols_read=int(frame["symbol"].nunique()),
+        symbols_read=span.symbols,
     )
 
 
 def render(result: ScreenResult) -> str:
     """The block the run prints: one line per cross, then the symbol count."""
     lines = [
-        f"S&P 500 MACD screen on the Bar for {result.as_of}",
+        f"S&P 500 MACD screen on the Bar for {result.screen_date}",
         f"{'symbol':<8}{'date':<12}close",
         *(f"{cross.symbol:<8}{cross.date!s:<12}{cross.close:.2f}" for cross in result.crosses),
         f"crosses: {len(result.crosses)}",

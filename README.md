@@ -38,7 +38,7 @@ python screen.py
 
 ## The Dataset
 
-`data/sp500_daily_bars.parquet` holds one row per symbol per date, with the columns symbol, date, open, high, low, close, volume and adjusted_close. The download makes one raw pass and one fully adjusted pass over each batch of symbols and stores the raw close beside the adjusted close, so the choice is visible in the file. The screen computes MACD on adjusted_close, because a split inside the window invents a cross that never happened.
+`data/sp500_daily_bars.parquet` holds one row per symbol per date, with the columns symbol, date, open, high, low, close, volume and adjusted_close. The download makes one raw pass and one fully adjusted pass over each batch of symbols and stores the raw close beside the adjusted close, so the choice is visible in the file. The screen computes MACD on adjusted_close, because a split inside the window invents a cross that never happened. The close it prints beside each symbol is the raw close from the latest Bar.
 
 `data/sp500_constituents.csv` is the Universe. It comes from the `datasets/s-and-p-500-companies` CSV, downloaded on 2026-09-16.
 

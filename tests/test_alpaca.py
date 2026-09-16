@@ -87,7 +87,7 @@ def build_source(
     return AlpacaBarSource(transport, CREDENTIALS, settings, sleep=sleep or RecordingSleep())
 
 
-def test_sends_the_credentials_the_feed_and_the_daily_timeframe() -> None:
+def test_sends_the_credentials_and_the_daily_bars_request() -> None:
     transport = FakeTransport([bars_reply({"AAPL": [bar_body("2024-01-02", 100.0)]})] * 2)
     build_source(transport).fetch_daily_bars(["AAPL"], DAY_ZERO, WINDOW_END)
     headers = transport.requests[0][2]
@@ -134,7 +134,7 @@ def test_follows_the_page_token_to_the_end_of_the_batch() -> None:
     assert transport.requests[3][1]["page_token"] == "next"
 
 
-def test_splits_the_symbol_list_into_batches() -> None:
+def test_splits_the_universe_into_batches() -> None:
     transport = FakeTransport([bars_reply({}) for _ in range(4)])
     settings = replace(NO_PACING, symbols_per_request=2)
     build_source(transport, settings).fetch_daily_bars(["AAA", "BBB", "CCC"], DAY_ZERO, WINDOW_END)

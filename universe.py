@@ -1,4 +1,4 @@
-"""The Universe: the S&P 500 symbol list from the static CSV in the repository."""
+"""The Universe: the S&P 500 symbols from the static CSV in the repository."""
 
 from collections.abc import Iterable
 from pathlib import Path

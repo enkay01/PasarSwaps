@@ -9,13 +9,13 @@ import pytest
 from bars import Bar
 from download import (
     DownloadRequest,
-    DownloadSummary,
+    IncompleteDownload,
     download_bars,
     read_credentials,
     render,
     ten_years_before,
 )
-from store import read_bars
+from store import DatasetSpan, read_bars
 from support import DAY_ZERO, history
 
 WINDOW_END = DAY_ZERO + timedelta(days=30)
@@ -54,6 +54,27 @@ def test_writes_the_dataset_and_reports_the_symbols_and_the_range(tmp_path: Path
     assert source.asks == [(["AAPL", "MSFT"], DAY_ZERO, WINDOW_END)]
 
 
+def test_refuses_a_download_that_dropped_a_universe_symbol(tmp_path: Path) -> None:
+    universe = write_universe(tmp_path / "universe.csv", ["AAPL", "MSFT"])
+    bars_path = tmp_path / "bars.parquet"
+    source = FakeSource(history("AAPL", [100.0, 101.0]))
+    request = DownloadRequest(universe_path=universe, bars_path=bars_path, start=DAY_ZERO, end=WINDOW_END)
+
+    with pytest.raises(IncompleteDownload, match="MSFT"):
+        download_bars(source, request)
+
+    assert not bars_path.exists()
+
+
+def test_refuses_a_download_that_returned_no_bars_at_all(tmp_path: Path) -> None:
+    universe = write_universe(tmp_path / "universe.csv", ["AAPL"])
+    bars_path = tmp_path / "bars.parquet"
+    request = DownloadRequest(universe_path=universe, bars_path=bars_path, start=DAY_ZERO, end=WINDOW_END)
+
+    with pytest.raises(IncompleteDownload, match="1 of 1 symbols"):
+        download_bars(FakeSource([]), request)
+
+
 def test_reads_the_two_credentials() -> None:
     credentials = read_credentials({"ALPACA_API_KEY": "key-id", "ALPACA_API_SECRET": "secret-key"})
     assert credentials.api_key == "key-id"
@@ -79,5 +100,5 @@ def test_ten_years_before_keeps_an_ordinary_day() -> None:
 
 
 def test_render_prints_the_count_and_the_range() -> None:
-    summary = DownloadSummary(symbols=503, first_date=date(2016, 9, 16), last_date=date(2026, 9, 15))
+    summary = DatasetSpan(symbols=503, first_date=date(2016, 9, 16), last_date=date(2026, 9, 15))
     assert render(summary) == "wrote 503 symbols, 2016-09-16 to 2026-09-15"

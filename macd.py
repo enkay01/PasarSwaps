@@ -31,14 +31,15 @@ def fresh_bullish_crosses(bars: pd.DataFrame) -> list[Cross]:
     crosses: list[Cross] = []
     for symbol, history in bars.groupby("symbol", sort=True):
         history = history.sort_values("date").reset_index(drop=True)
-        if len(history) < MINIMUM_BARS or history["date"].iloc[-1] != latest:
+        latest_bar = history.iloc[-1]
+        if len(history) < MINIMUM_BARS or latest_bar["date"] != latest:
             continue
         if _crossed_on_latest_bar(history):
             crosses.append(
                 Cross(
                     symbol=str(symbol),
-                    date=history["date"].iloc[-1].date(),
-                    close=float(history["close"].iloc[-1]),
+                    date=latest_bar["date"].date(),
+                    close=float(latest_bar["close"]),
                 )
             )
     return crosses
