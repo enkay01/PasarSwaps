@@ -1,0 +1,3 @@
+# Use Alpaca Paper Only instead of Interactive Brokers
+
+Interactive Brokers was the chosen broker on 2026-09-16. The research in `docs/research/ibkr/` then found that a paper account exists only as an attachment to an approved live account, that the API needs Trader Workstation or IB Gateway holding a browser login, and that IBKR holds no history at all for expired option contracts. An Alpaca Paper Only account needs an email address, no funding and no local process, and its paper endpoint is an HTTP API. The cost is IEX data only, the last 15 minutes withheld, and fills from a simulator that ignores market impact, queue position and fees. The IBKR notes stay in the repository as background.

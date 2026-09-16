@@ -15,12 +15,14 @@ A research notebook for a one-person algorithmic trading project. This file fixe
 | Implied volatility | The volatility that makes the option model price equal the market price. | IV |
 | Strategy | The rule set that turns market data into signals. | algo, bot |
 | Signal | An instruction from a strategy to enter or exit a position. | trigger |
+| Screen | A run of a strategy's rules over the latest bars of a universe, which prints the symbols that qualify. | scan, screener, filter |
+| Universe | The set of symbols a screen runs over. | watchlist, symbol list |
 | Backtest | A run of a strategy over stored history, which produces simulated fills and one result. | backtest run, simulation |
 | Paper trade | An order sent to a broker simulator instead of the market. | dry run, demo trade |
 | Fill | The result of an order that traded, in whole or in part. | execution |
 | Slippage | The difference between the price a backtest assumes and the price a fill gets. | market impact |
 | Source | A provider of market data. | provider, vendor, feed |
-| Dataset | The stored data that a backtest reads. One dataset can serve more than one backtest. | data set, cache |
+| Dataset | The stored data that a screen or a backtest reads. One dataset can serve more than one run. | data set, cache |
 | Point in time | A record is point in time when it holds only what was knowable at that moment. | as-of, look-ahead safe |
 
 ## Repository

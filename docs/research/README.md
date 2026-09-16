@@ -4,7 +4,7 @@ The index for this folder. The feature these notes support is [Hobbyist trading 
 
 ## Where this stands
 
-The stack is chosen. yfinance for daily equity and ETF history, ThetaData or MarketData.app for options, backtesting.py or vectorbt for the backtest, and an Alpaca Paper Only account with `alpaca-py` for paper. Cost to start is zero.
+The first Feature is a Screen over the S&P 500 on daily Bars, with the data in one Parquet file. Alpaca Basic is the Source, because it takes a symbol list per request. yfinance stays as an optional deep-history extra. The Backtest engine is not chosen yet, because the Screen comes first. Cost to start is zero.
 
 Interactive Brokers was dropped. The first research round found that it needs a funded live account before a paper account exists, a gateway process holding a browser login, and that it has no history at all for expired option contracts. The second round found a free Alpaca paper account that needs none of that. The IBKR notes stay here as background.
 

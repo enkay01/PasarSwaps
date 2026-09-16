@@ -2,7 +2,7 @@
 
 ## Project
 
-PasarSwaps is a research notebook for a one-person algorithmic trading project. The vocabulary is in `CONTEXT.md`, and it overrides synonyms. Research notes live in `docs/research/`, indexed by `docs/research/README.md`. Work is tracked as GitHub issues, and the feature is issue #1.
+PasarSwaps is a research notebook for a one-person algorithmic trading project. The vocabulary is in `CONTEXT.md`, and it overrides synonyms. Research notes live in `docs/research/`, indexed by `docs/research/README.md`. Decisions are recorded as ADRs in `docs/adr/`. Work is tracked as GitHub issues, and the feature is issue #1.
 
 ## Writing style
 

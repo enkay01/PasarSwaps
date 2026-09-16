@@ -1,0 +1,3 @@
+# Daily US equity and ETF Bars before options
+
+Every options note in `docs/research/` asks for something the free tier does not carry: a paid Source, a local terminal, or a negotiated import contract. The free option history is one year of end-of-day data from ThetaData or MarketData.app, and neither backtesting.py nor vectorbt can backtest Option contracts, so an options Backtest is hand-written code. US equity and ETF daily Bars need no key, reach back decades, and Alpaca returns a symbol list per request, which makes a Screen over the S&P 500 cheap. Options become their own Feature once the loop runs.
