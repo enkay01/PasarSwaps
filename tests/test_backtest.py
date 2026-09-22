@@ -175,10 +175,11 @@ def test_run_backtest_reads_dataset_from_disk(tmp_path: Path) -> None:
 
 
 def test_starting_cash_zero_returns_zero_return() -> None:
-    frame = bars_to_frame([])
+    frame = bars_to_frame(history("AAPL", [100.0] * MINIMUM_BARS))
     result = evaluate_backtest(frame, BacktestSettings(starting_cash=0.0))
 
     assert result.starting_cash == 0.0
+    assert result.ending_cash == 0.0
     assert result.final_equity == 0.0
     assert result.total_return == 0.0
 
@@ -195,14 +196,16 @@ def test_zero_close_produces_zero_adjusted_open_and_avoids_crash() -> None:
             low=0.0,
             close=0.0,
             volume=1_000,
-            adjusted_close=0.0,
+            adjusted_close=100.0,
         )
     )
     frame = bars_to_frame(bars)
     result = evaluate_backtest(frame, BacktestSettings(starting_cash=100_000.0))
 
     assert result.fill_count == 0
+    assert result.ending_cash == 100_000.0
     assert result.final_equity == 100_000.0
+    assert result.total_return == 0.0
 
 
 def test_exit_commission_does_not_drive_cash_negative() -> None:
