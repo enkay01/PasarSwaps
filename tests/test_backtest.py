@@ -15,6 +15,7 @@ def test_empty_dataset_returns_zero_return_and_zero_fills() -> None:
     result = evaluate_backtest(frame, BacktestSettings(starting_cash=100_000.0))
 
     assert result.starting_cash == 100_000.0
+    assert result.ending_cash == 100_000.0
     assert result.final_equity == 100_000.0
     assert result.total_return == 0.0
     assert result.fill_count == 0
@@ -130,6 +131,7 @@ def test_precision_loss_does_not_drop_eligible_symbols() -> None:
 def test_render_formats_expected_output() -> None:
     result = BacktestResult(
         starting_cash=100_000.0,
+        ending_cash=115_214.74,
         final_equity=151_600.0,
         total_return=0.516,
         fill_count=58455,
@@ -142,6 +144,7 @@ def test_render_formats_expected_output() -> None:
             "return: 51.60%",
             "fill count: 58455",
             "starting cash: USD 100,000.00",
+            "ending cash: USD 115,214.74",
             "commission: USD 0.00",
             "slippage: 0 bps",
         ]
