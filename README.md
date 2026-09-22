@@ -10,9 +10,9 @@ Two commands put ten years of daily Bars for the S&P 500 on disk, then print the
 
 `python screen.py` reads that file and prints the symbols with a fresh bullish MACD cross on the latest Bar, each with the date and the close, then prints the symbol count it read. The screen never touches the network.
 
-## The second feature
+## Backtest
 
-`python backtest.py` reads that file, simulates the MACD cross rules over the stored history with shared cash starting at USD 100,000, and prints the return, the Fill count and the settings used. The backtest never touches the network.
+`python backtest.py` reads that file and runs the MACD cross rules over the stored history with USD 100,000 starting cash. It prints the return and the Fill count alongside the settings. The backtest never touches the network.
 
 ## Setup
 

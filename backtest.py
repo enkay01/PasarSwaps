@@ -2,8 +2,8 @@
 
     python backtest.py
 
-Reads data/sp500_daily_bars.parquet and prints the return, the Fill count,
-and the settings the run used.
+Reads data/sp500_daily_bars.parquet and prints the return and the Fill count
+alongside the settings.
 """
 
 from dataclasses import dataclass
@@ -19,9 +19,10 @@ from store import read_bars
 
 @dataclass(frozen=True, slots=True)
 class BacktestSettings:
-    """The settings for one Backtest run."""
+    """The settings for one Backtest."""
 
     starting_cash: float = 100_000.0
+    commission: float = 0.0
     slippage_bps: int = 0
 
 
@@ -30,19 +31,20 @@ DEFAULT_SETTINGS = BacktestSettings()
 
 @dataclass(frozen=True, slots=True)
 class BacktestResult:
-    """The outcome of one Backtest run over the Dataset."""
+    """The outcome of one Backtest over the Dataset."""
 
     starting_cash: float
     final_equity: float
     total_return: float
     fill_count: int
+    commission: float
     slippage_bps: int
 
 
 @dataclass(frozen=True, slots=True)
 class _DailyBar:
-    adj_open: float
-    adj_close: float
+    adjusted_open: float
+    adjusted_close: float
     bullish: bool
     bearish: bool
 
@@ -58,13 +60,13 @@ def evaluate_backtest(
             final_equity=settings.starting_cash,
             total_return=0.0,
             fill_count=0,
+            commission=settings.commission,
             slippage_bps=settings.slippage_bps,
         )
 
     slippage_rate = settings.slippage_bps / 10_000.0
     universe_size = int(frame["symbol"].nunique())
 
-    # Precalculate signals and adjusted prices per symbol
     bars_by_date: dict[object, dict[str, _DailyBar]] = {}
     for symbol, group in frame.groupby("symbol", sort=True):
         history = group.sort_values("date").reset_index(drop=True)
@@ -77,19 +79,21 @@ def evaluate_backtest(
         adj_open_series = open_series * ratio
 
         dates = history["date"].values
-        adj_opens = adj_open_series.values
-        adj_closes = adj_close_series.values
-        bulls = signals.bullish.values
-        bears = signals.bearish.values
+        open_vals = adj_open_series.values
+        close_vals = adj_close_series.values
+        bull_vals = signals.bullish.values
+        bear_vals = signals.bearish.values
 
-        for d, o, c, bull, bear in zip(dates, adj_opens, adj_closes, bulls, bears, strict=True):
-            if d not in bars_by_date:
-                bars_by_date[d] = {}
-            bars_by_date[d][str(symbol)] = _DailyBar(
-                adj_open=float(o),
-                adj_close=float(c),
-                bullish=bool(bull),
-                bearish=bool(bear),
+        for bar_date, open_val, close_val, bull_val, bear_val in zip(
+            dates, open_vals, close_vals, bull_vals, bear_vals, strict=True
+        ):
+            if bar_date not in bars_by_date:
+                bars_by_date[bar_date] = {}
+            bars_by_date[bar_date][str(symbol)] = _DailyBar(
+                adjusted_open=float(open_val),
+                adjusted_close=float(close_val),
+                bullish=bool(bull_val),
+                bearish=bool(bear_val),
             )
 
     sorted_dates = sorted(bars_by_date.keys())
@@ -102,26 +106,26 @@ def evaluate_backtest(
     pending_exits: set[str] = set()
     fill_count = 0
 
-    for d in sorted_dates:
-        today = bars_by_date[d]
+    for bar_date in sorted_dates:
+        today = bars_by_date[bar_date]
         for sym, bar in today.items():
-            open_prices[sym] = bar.adj_open
-            close_prices[sym] = bar.adj_close
+            open_prices[sym] = bar.adjusted_open
+            close_prices[sym] = bar.adjusted_close
 
         # 1. Process exits at the open
         for sym in sorted(pending_exits):
             if sym in today and sym in positions:
-                exit_price = today[sym].adj_open * (1.0 - slippage_rate)
+                exit_price = today[sym].adjusted_open * (1.0 - slippage_rate)
                 shares = positions.pop(sym)
-                cash += shares * exit_price
+                cash += (shares * exit_price) - settings.commission
                 fill_count += 1
-        pending_exits = {sym for sym in pending_exits if sym in positions}
+        pending_exits = {sym for sym in pending_exits if sym in positions and sym not in today}
 
         # 2. Process entries at the open
         eligible = [
             sym
             for sym in sorted(pending_entries)
-            if sym in today and sym not in positions and today[sym].adj_open > 0
+            if sym in today and sym not in positions and today[sym].adjusted_open > 0
         ]
         if eligible and cash > 0:
             open_val = sum(shares * open_prices.get(sym, 0.0) for sym, shares in positions.items())
@@ -131,12 +135,15 @@ def evaluate_backtest(
             alloc = min(target_alloc, cash_per_symbol)
             if alloc > 0:
                 for sym in eligible:
-                    entry_price = today[sym].adj_open * (1.0 + slippage_rate)
-                    if entry_price > 0 and cash >= alloc:
-                        positions[sym] = alloc / entry_price
-                        cash -= alloc
+                    entry_price = today[sym].adjusted_open * (1.0 + slippage_rate)
+                    trade_cash = min(alloc, cash)
+                    if entry_price > 0 and trade_cash > settings.commission:
+                        effective_capital = trade_cash - settings.commission
+                        positions[sym] = effective_capital / entry_price
+                        cash -= trade_cash
+                        cash = max(0.0, cash)
                         fill_count += 1
-        pending_entries.clear()
+        pending_entries = {sym for sym in pending_entries if sym not in today and sym not in positions}
 
         # 3. Evaluate signals at the close
         for sym, bar in today.items():
@@ -145,7 +152,6 @@ def evaluate_backtest(
             if bar.bearish and sym in positions:
                 pending_exits.add(sym)
 
-    # Final valuation of open positions at last available adjusted close
     final_pos_val = sum(shares * close_prices.get(sym, 0.0) for sym, shares in positions.items())
     final_equity = cash + final_pos_val
     total_return = (final_equity - settings.starting_cash) / settings.starting_cash
@@ -155,6 +161,7 @@ def evaluate_backtest(
         final_equity=final_equity,
         total_return=total_return,
         fill_count=fill_count,
+        commission=settings.commission,
         slippage_bps=settings.slippage_bps,
     )
 
@@ -169,12 +176,13 @@ def run_backtest(
 
 
 def render(result: BacktestResult) -> str:
-    """The block the run prints: return, fill count and settings."""
+    """The block the Backtest prints."""
     lines = [
         "S&P 500 MACD backtest",
         f"return: {result.total_return * 100:.2f}%",
         f"fill count: {result.fill_count}",
         f"starting cash: USD {result.starting_cash:,.2f}",
+        f"commission: USD {result.commission:.2f}",
         f"slippage: {result.slippage_bps} bps",
     ]
     return "\n".join(lines)

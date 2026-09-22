@@ -40,7 +40,7 @@ def macd_histogram(adjusted_close: pd.Series) -> pd.Series:
 def macd_signals(history: pd.DataFrame) -> SignalSeries:
     """Compute bullish and bearish MACD crosses across history.
 
-    A cross requires at least MINIMUM_BARS of history before it can trigger.
+    A cross requires at least MINIMUM_BARS of history before producing a signal.
     A bullish cross occurs when the histogram is above zero and was at or below zero
     on the Bar before it. A bearish cross occurs when the histogram is below zero
     and was at or above zero on the Bar before it.
@@ -87,5 +87,5 @@ def fresh_bullish_crosses(bars: pd.DataFrame) -> list[Cross]:
 
 
 def _crossed_on_latest_bar(history: pd.DataFrame) -> bool:
-    histogram = macd_histogram(history["adjusted_close"])
-    return bool(histogram.iloc[-1] > 0 and histogram.iloc[-2] <= 0)
+    signals = macd_signals(history)
+    return bool(signals.bullish.iloc[-1])
