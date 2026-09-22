@@ -16,6 +16,7 @@ def test_empty_dataset_returns_zero_return_and_zero_fills() -> None:
 
     assert result.starting_cash == 100_000.0
     assert result.ending_cash == 100_000.0
+    assert result.invested_sum == 0.0
     assert result.final_equity == 100_000.0
     assert result.total_return == 0.0
     assert result.fill_count == 0
@@ -62,6 +63,8 @@ def test_position_valued_at_last_bar_adjusted_close_when_held_open() -> None:
     assert result.fill_count == 1
     shares = 100_000.0 / 110.0
     expected_equity = shares * 120.0
+    assert result.ending_cash == 0.0
+    assert round(result.invested_sum, 2) == round(expected_equity, 2)
     assert round(result.final_equity, 2) == round(expected_equity, 2)
 
 
@@ -132,6 +135,7 @@ def test_render_formats_expected_output() -> None:
     result = BacktestResult(
         starting_cash=100_000.0,
         ending_cash=115_214.74,
+        invested_sum=36_385.26,
         final_equity=151_600.0,
         total_return=0.516,
         fill_count=58455,
@@ -145,6 +149,8 @@ def test_render_formats_expected_output() -> None:
             "fill count: 58455",
             "starting cash: USD 100,000.00",
             "ending cash: USD 115,214.74",
+            "invested sum: USD 36,385.26",
+            "final equity: USD 151,600.00",
             "commission: USD 0.00",
             "slippage: 0 bps",
         ]

@@ -35,6 +35,7 @@ class BacktestResult:
 
     starting_cash: float
     ending_cash: float
+    invested_sum: float
     final_equity: float
     total_return: float
     fill_count: int
@@ -59,6 +60,7 @@ def evaluate_backtest(
         return BacktestResult(
             starting_cash=settings.starting_cash,
             ending_cash=settings.starting_cash,
+            invested_sum=0.0,
             final_equity=settings.starting_cash,
             total_return=0.0,
             fill_count=0,
@@ -154,13 +156,14 @@ def evaluate_backtest(
             if bar.bearish and sym in positions:
                 pending_exits.add(sym)
 
-    final_pos_val = sum(shares * close_prices.get(sym, 0.0) for sym, shares in positions.items())
-    final_equity = cash + final_pos_val
+    invested_sum = sum(shares * close_prices.get(sym, 0.0) for sym, shares in positions.items())
+    final_equity = cash + invested_sum
     total_return = (final_equity - settings.starting_cash) / settings.starting_cash
 
     return BacktestResult(
         starting_cash=settings.starting_cash,
         ending_cash=cash,
+        invested_sum=invested_sum,
         final_equity=final_equity,
         total_return=total_return,
         fill_count=fill_count,
@@ -186,6 +189,8 @@ def render(result: BacktestResult) -> str:
         f"fill count: {result.fill_count}",
         f"starting cash: USD {result.starting_cash:,.2f}",
         f"ending cash: USD {result.ending_cash:,.2f}",
+        f"invested sum: USD {result.invested_sum:,.2f}",
+        f"final equity: USD {result.final_equity:,.2f}",
         f"commission: USD {result.commission:.2f}",
         f"slippage: {result.slippage_bps} bps",
     ]
