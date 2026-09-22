@@ -69,13 +69,17 @@ def test_position_valued_at_last_bar_adjusted_close_when_held_open() -> None:
 
 
 def test_fills_use_adjusted_open_so_splits_do_not_invent_losses() -> None:
-    # 4-for-1 split scenario: raw price falls from 400 to 100, but adjusted series is flat.
-    adjusted = [100.0] * (MINIMUM_BARS - 1) + [110.0, 110.0]
-    raw = [400.0] * (MINIMUM_BARS - 1) + [440.0, 110.0]
+    # 2-for-1 split scenario: raw price is double adjusted price across the history,
+    # including on the fill bar where raw open is 200.0 while adjusted open is 100.0.
+    adjusted = [100.0] * (MINIMUM_BARS - 1) + [110.0, 100.0]
+    raw = [200.0] * (MINIMUM_BARS - 1) + [220.0, 200.0]
     frame = bars_to_frame(history("AAPL", raw, adjusted_closes=adjusted))
     result = evaluate_backtest(frame, BacktestSettings(starting_cash=100_000.0, slippage_bps=0))
 
     assert result.fill_count == 1
+    assert result.ending_cash == 0.0
+    assert result.invested_sum == 100_000.0
+    assert result.final_equity == 100_000.0
     assert round(result.total_return, 4) == 0.0
 
 
@@ -97,9 +101,11 @@ def test_cash_allocation_shares_equity_across_universe() -> None:
     result = evaluate_backtest(frame, BacktestSettings(starting_cash=100_000.0, slippage_bps=0))
 
     assert result.fill_count == 1
+    assert result.ending_cash == 50_000.0
     shares = 50_000.0 / 110.0
-    expected_equity = 50_000.0 + (shares * 110.0)
-    assert round(result.final_equity, 2) == round(expected_equity, 2)
+    expected_invested = shares * 110.0
+    assert round(result.invested_sum, 2) == round(expected_invested, 2)
+    assert round(result.final_equity, 2) == 100_000.0
 
 
 def test_entry_executes_on_symbol_next_bar_even_with_calendar_gap() -> None:
@@ -166,3 +172,45 @@ def test_run_backtest_reads_dataset_from_disk(tmp_path: Path) -> None:
     result = run_backtest(parquet_path, BacktestSettings(starting_cash=100_000.0))
     assert result.fill_count == 0
     assert result.total_return == 0.0
+
+
+def test_starting_cash_zero_returns_zero_return() -> None:
+    frame = bars_to_frame([])
+    result = evaluate_backtest(frame, BacktestSettings(starting_cash=0.0))
+
+    assert result.starting_cash == 0.0
+    assert result.final_equity == 0.0
+    assert result.total_return == 0.0
+
+
+def test_zero_close_produces_zero_adjusted_open_and_avoids_crash() -> None:
+    bars = history("AAPL", [100.0] * (MINIMUM_BARS - 1) + [110.0])
+    last_day = bars[-1].date + timedelta(days=1)
+    bars.append(
+        Bar(
+            symbol="AAPL",
+            date=last_day,
+            open=100.0,
+            high=100.0,
+            low=0.0,
+            close=0.0,
+            volume=1_000,
+            adjusted_close=0.0,
+        )
+    )
+    frame = bars_to_frame(bars)
+    result = evaluate_backtest(frame, BacktestSettings(starting_cash=100_000.0))
+
+    assert result.fill_count == 0
+    assert result.final_equity == 100_000.0
+
+
+def test_exit_commission_does_not_drive_cash_negative() -> None:
+    closes = [100.0] * (MINIMUM_BARS - 1) + [110.0, 110.0, 80.0, 80.0]
+    frame = bars_to_frame(history("AAPL", closes))
+    settings = BacktestSettings(starting_cash=100.0, commission=50.0, slippage_bps=0)
+    result = evaluate_backtest(frame, settings)
+
+    assert result.fill_count == 2
+    assert result.ending_cash == 0.0
+    assert result.final_equity == 0.0

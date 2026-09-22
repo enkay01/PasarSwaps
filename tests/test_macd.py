@@ -76,3 +76,4 @@ def test_macd_signals_returns_empty_when_under_minimum_bars() -> None:
     signals = macd_signals(frame)
     assert not signals.bullish.any()
     assert not signals.bearish.any()
+    assert signals.bullish is not signals.bearish

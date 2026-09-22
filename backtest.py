@@ -79,8 +79,9 @@ def evaluate_backtest(
         adj_close_series = history["adjusted_close"].astype("float64")
         open_series = history["open"].astype("float64")
 
-        ratio = adj_close_series / close_series
-        adj_open_series = open_series * ratio
+        valid_price = (close_series > 0) & (open_series > 0) & (adj_close_series > 0)
+        ratio = (adj_close_series / close_series).where(valid_price, 0.0)
+        adj_open_series = (open_series * ratio).fillna(0.0)
 
         dates = history["date"].values
         open_vals = adj_open_series.values
@@ -118,12 +119,14 @@ def evaluate_backtest(
 
         # 1. Process exits at the open
         for sym in sorted(pending_exits):
-            if sym in today and sym in positions:
+            if sym in today and sym in positions and today[sym].adjusted_open > 0:
                 exit_price = today[sym].adjusted_open * (1.0 - slippage_rate)
-                shares = positions.pop(sym)
-                cash += (shares * exit_price) - settings.commission
-                fill_count += 1
-        pending_exits = {sym for sym in pending_exits if sym in positions and sym not in today}
+                if exit_price > 0:
+                    shares = positions.pop(sym)
+                    net_proceeds = (shares * exit_price) - settings.commission
+                    cash += max(0.0, net_proceeds)
+                    fill_count += 1
+        pending_exits = {sym for sym in pending_exits if sym in positions}
 
         # 2. Process entries at the open
         eligible = [
@@ -158,7 +161,11 @@ def evaluate_backtest(
 
     invested_sum = sum(shares * close_prices.get(sym, 0.0) for sym, shares in positions.items())
     final_equity = cash + invested_sum
-    total_return = (final_equity - settings.starting_cash) / settings.starting_cash
+    total_return = (
+        (final_equity - settings.starting_cash) / settings.starting_cash
+        if settings.starting_cash > 0.0
+        else 0.0
+    )
 
     return BacktestResult(
         starting_cash=settings.starting_cash,

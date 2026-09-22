@@ -46,8 +46,10 @@ def macd_signals(history: pd.DataFrame) -> SignalSeries:
     and was at or above zero on the Bar before it.
     """
     if len(history) < MINIMUM_BARS:
-        empty = pd.Series(False, index=history.index)
-        return SignalSeries(bullish=empty, bearish=empty)
+        return SignalSeries(
+            bullish=pd.Series(False, index=history.index),
+            bearish=pd.Series(False, index=history.index),
+        )
 
     hist = macd_histogram(history["adjusted_close"])
     prev_hist = hist.shift(1)
