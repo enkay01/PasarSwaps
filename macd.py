@@ -20,6 +20,47 @@ class Cross:
     close: float
 
 
+@dataclass(frozen=True, slots=True)
+class SignalSeries:
+    """Bullish and bearish cross flags over a symbol's history."""
+
+    bullish: pd.Series
+    bearish: pd.Series
+
+
+def macd_histogram(adjusted_close: pd.Series) -> pd.Series:
+    """The MACD histogram (MACD line minus signal line) on adjusted close."""
+    fast = adjusted_close.astype("float64").ewm(span=FAST_SPAN, adjust=False).mean()
+    slow = adjusted_close.astype("float64").ewm(span=SLOW_SPAN, adjust=False).mean()
+    macd = fast - slow
+    signal = macd.ewm(span=SIGNAL_SPAN, adjust=False).mean()
+    return macd - signal
+
+
+def macd_signals(history: pd.DataFrame) -> SignalSeries:
+    """Compute bullish and bearish MACD crosses across history.
+
+    A cross requires at least MINIMUM_BARS of history before it can trigger.
+    A bullish cross occurs when the histogram is above zero and was at or below zero
+    on the Bar before it. A bearish cross occurs when the histogram is below zero
+    and was at or above zero on the Bar before it.
+    """
+    if len(history) < MINIMUM_BARS:
+        empty = pd.Series(False, index=history.index)
+        return SignalSeries(bullish=empty, bearish=empty)
+
+    hist = macd_histogram(history["adjusted_close"])
+    prev_hist = hist.shift(1)
+
+    bull = (hist > 0) & (prev_hist <= 0)
+    bear = (hist < 0) & (prev_hist >= 0)
+
+    valid_mask = pd.Series(False, index=history.index)
+    valid_mask.iloc[MINIMUM_BARS - 1 :] = True
+
+    return SignalSeries(bullish=bull & valid_mask, bearish=bear & valid_mask)
+
+
 def fresh_bullish_crosses(bars: pd.DataFrame) -> list[Cross]:
     """Return the symbols with a fresh bullish MACD cross on the latest Bar.
 
@@ -46,10 +87,5 @@ def fresh_bullish_crosses(bars: pd.DataFrame) -> list[Cross]:
 
 
 def _crossed_on_latest_bar(history: pd.DataFrame) -> bool:
-    adjusted_close = history["adjusted_close"].astype("float64")
-    fast = adjusted_close.ewm(span=FAST_SPAN, adjust=False).mean()
-    slow = adjusted_close.ewm(span=SLOW_SPAN, adjust=False).mean()
-    macd = fast - slow
-    signal = macd.ewm(span=SIGNAL_SPAN, adjust=False).mean()
-    histogram = macd - signal
+    histogram = macd_histogram(history["adjusted_close"])
     return bool(histogram.iloc[-1] > 0 and histogram.iloc[-2] <= 0)
